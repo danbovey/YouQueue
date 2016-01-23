@@ -1,26 +1,21 @@
 $(function() {
+	var type;
+
 	var Queue = {
 		load: function() {
 			chrome.runtime.sendMessage({
 				action: 'load'
-			}, function(response) {
-				var list = response.list;
-				console.log(list);
-				if(list) {
-					for(var video in list) {
-						$('#youqueue-queue').append(
-							'<a href="' + list[video].link + '" class="youqueue-video" title="' + list[video].title + '" data-id="' + list[video].id + '">' +
-								'<img src="' + list[video].img + '">' +
-							'</a>'
-						);
-					}
-				}
 			});
 		},
 		toggle: function(video) {
 			chrome.runtime.sendMessage({
 				action: 'toggle',
 				video: video
+			});
+		},
+		getNextVideo: function() {
+			chrome.runtime.sendMessage({
+				action: 'nextVideo'
 			});
 		},
 		addToDOMQueue: function(video) {
@@ -33,6 +28,13 @@ $(function() {
 		},
 		removeFromDOMQueue: function(video) {
 			$('#youqueue-queue').find('[data-id="' + video.id + '"]').remove();
+		},
+		updateThumbActions: function(video) {
+			console.log('#browse-items-primary data-context-item-id="' + video.id + '"]');
+			console.log($('#browse-items-primary').find('[data-context-item-id="' + video.id + '"]'));
+
+			$('#browse-items-primary').find('[data-context-item-id="' + video.id + '"] .addto-queue-button').addClass('addto-watch-queue-button-success');
+
 		},
 		add: function(video) {
 			chrome.runtime.sendMessage({
@@ -59,9 +61,18 @@ $(function() {
 	}
 
 	if($('#browse-items-primary').length) {
+		type = 'subscriptions';
+
 		chrome.runtime.sendMessage({
 			action: 'connect',
 			tabType: 'subscriptions'
+		});
+	} else if($('#player:not(.off-screen)').length) {
+		type = 'player';
+
+		chrome.runtime.sendMessage({
+			action: 'connect',
+			tabType: 'player'
 		});
 	}
 
@@ -127,23 +138,93 @@ $(function() {
 			var id = $(this).parent().data('id');
 			Queue.remove(id);
 		});
+
+		chrome.runtime.onMessage.addListener(function(data) {
+			switch(data.action) {
+				case 'load':
+					var list = data.list;
+					if(list) {
+						for(var i in list) {
+							var video = list[i];
+							Queue.addToDOMQueue(video);
+							Queue.updateThumbActions(video);
+						}
+					}
+					break;
+				case 'toggle':
+					if(data.type == 'added') {
+						Queue.addToDOMQueue(data.video);
+					} else if(data.type == 'removed') {
+						Queue.removeFromDOMQueue(data.video);
+					}
+					break;
+				case 'remove':
+					if(data.video) {
+						Queue.removeFromDOMQueue(data.video);
+					}
+					break;
+			}
+		});
+	}
+
+	var getPlayer = function() {
+		if($('movie_player').length && $('movie_player').prop('tagName') === 'EMBED') {
+			return $('movie_player');
+		}
+
+		if($('video').length) {
+			var html = $('video');
+			html.getPlayerState = function() {
+				return html.ended ? 0 : 1;
+			}
+			html.seekTo = function(value) {
+				html.currentTime = value;
+				html.play();
+			}
+			html.pauseVideo = function() {
+				html.pause();
+			}
+			html.playVideo = function() {
+				html.play();
+			}
+			return html;
+		}
+
+		return null;
+	}
+
+	var loadPlayerDOM = function() {
+		var player = getPlayer();
+		if(player) {
+			var video = player[0];
+			window.setInterval(function() {
+				if(video.currentTime == video.duration) {
+					Queue.getNextVideo();
+				}
+			}, 250);
+		}
+
+		chrome.runtime.onMessage.addListener(function(data) {
+			switch(data.action) {
+				case 'add':
+					console.log('video was added...');
+					break;
+				case 'nextVideo':
+					if(data.video.link) {
+						window.location.href = data.video.link;
+					}
+					break;
+			}
+		});
 	}
 
 	chrome.runtime.onMessage.addListener(function(data) {
 		switch(data.action) {
 			case 'connect':
-				loadQueueDOM(data.list);
-				break;
-			case 'toggle':
-				if(data.type == 'added') {
-					Queue.addToDOMQueue(data.video);
-				} else if(data.type == 'removed') {
-					Queue.removeFromDOMQueue(data.video);
-				}
-				break;
-			case 'remove':
-				if(data.video) {
-					Queue.removeFromDOMQueue(data.video);
+				if(type == 'subscriptions') {
+					loadQueueDOM(data.list);
+				} else if(type == 'player') {
+					loadPlayerDOM();
 				}
 				break;
 		}

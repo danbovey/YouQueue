@@ -9,6 +9,15 @@ var Queue = {
 
 		return false;
 	},
+	getNextVideo: function() {
+		if(Queue.list.length) {
+			var next = Queue.list[0];
+			Queue.list.splice(0, 1);
+			return next;
+		}
+
+		return [];
+	},
 	find: function(id) {
 		for(var video in Queue.list) {
 			if(Queue.list[video].id == id) {
@@ -63,26 +72,19 @@ chrome.runtime.onMessage.addListener(function(data, sender) {
 	if(data.action == 'connect') {
 		if(data.tabType == 'subscriptions') {
 			subscriptionTab = tab;
-			chrome.tabs.sendMessage(tab.id, {
-				action: 'connect',
-				list: Queue.list
-			});
+			chrome.tabs.sendMessage(tab.id, { action: 'connect', list: Queue.list });
 		} else if(data.tabType == 'player') {
-			playerTab = player.tab;
-			chrome.tabs.sendMessage(tab.id, {
-				action: 'connect',
-				list: Queue.list
-			});
+			playerTab = tab;
+			chrome.tabs.sendMessage(tab.id, { action: 'connect', list: Queue.list });
 		}
 
 		return;
 	}
 
-	if(tab.id == subscriptionTab.id) {
+	if(subscriptionTab && tab.id == subscriptionTab.id) {
 		switch(data.action) {
 			case 'load':
-				var list = Queue.list;
-				return chrome.tabs.sendMessage(tab.id, { action: 'load', list: list });
+				return chrome.tabs.sendMessage(tab.id, { action: 'load', list: Queue.list });
 				break;
 			case 'toggle':
 				var video = data.video
@@ -97,7 +99,12 @@ chrome.runtime.onMessage.addListener(function(data, sender) {
 					return chrome.tabs.sendMessage(tab.id, { action: 'remove', video: video });
 				}
 		}
-	} else if(tab.id == playerTab.id) {
-		// TODO - Add control over player tab
+	} else if(playerTab && tab.id == playerTab.id) {
+		switch(data.action) {
+			case 'nextVideo':
+				var video = Queue.getNextVideo();
+				return chrome.tabs.sendMessage(tab.id, { action: 'nextVideo', video: video });
+				break;
+		}
 	}
 });
