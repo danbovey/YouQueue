@@ -52,6 +52,12 @@ var Queue = {
 
 		return false;
 	},
+	moveTo: function(id, new_index) {
+		var index = Queue.find(id);
+		if(index) {
+			Queue.move(index, new_index);
+		}
+	},
 	move: function(old_index, new_index) {
 		if(new_index >= Queue.list.length) {
 			var k = new_index - Queue.list.length;
@@ -98,6 +104,10 @@ chrome.runtime.onMessage.addListener(function(data, sender) {
 					Queue.remove(id);
 					return chrome.tabs.sendMessage(tab.id, { action: 'remove', video: video });
 				}
+			case 'moveTo':
+				Queue.moveTo(data.id, data.new_index);
+				console.log(Queue.list);
+				break;
 		}
 	} else if(playerTab && tab.id == playerTab.id) {
 		switch(data.action) {

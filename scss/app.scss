@@ -4,6 +4,11 @@
 	}
 }
 
+#youqueue-bar, #youqueue-actions, #youqueue-queue {
+	display: flex;
+	align-items: stretch;
+}
+
 #youqueue-bar {
 	position: fixed;
 	z-index: 1999999998;
@@ -30,12 +35,15 @@
 	}
 
 	#youqueue-queue {
+		position: relative;
 		float: left;
 		padding: 13px 15px;
 
 		.youqueue-video {
 			position: relative;
 			float: left;
+			width: 62px;
+			height: 35px;
 			margin-right: 10px;
 			cursor: move;
 			user-select: none;
@@ -46,6 +54,23 @@
 			&:hover, &:focus {
 				.youqueue-remove {
 					display: block;
+				}
+			}
+			&.dragging {
+				&:before {
+					position: absolute;
+					width: calc(100% - 6px);
+					height: calc(100% - 6px);
+					border: 3px dashed rgba(255, 255, 255, 0.2);
+					content: '';
+				}
+				&:hover, &:focus {
+					.youqueue-remove {
+						display: none;
+					}
+				}
+				img {
+					display: none;
 				}
 			}
 
@@ -65,9 +90,65 @@
 
 			img {
 				display: block;
-				width: 62px;
-				height: 35px;
+				width: 100%;
+			}
+		}
+
+		> img.dragger {
+			position: absolute;
+			top: 13px;
+			left: 0;
+			width: 62px;
+			height: 35px;
+		}
+	}
+
+	@media(min-width: 1200px) {
+		padding: 0 20px;
+	}
+
+	@media(min-height: 700px) {
+		height: 75px;
+
+		.youqueue-button {
+			margin: 21px 0;
+		}
+
+		#youqueue-queue {
+			.youqueue-video {
+				width: 89px;
+				height: 50px;
+			}
+
+			> img.dragger {
+				width: 89px;
+				height: 50px;
 			}
 		}
 	}
+}
+
+.yt-play-icon {
+	background: no-repeat url(//s.ytimg.com/yts/imgbin/www-hitchhiker-2x-vfl2drU0Y.webp) -65px -180px;
+	background-size: 628px 264px;
+	width: 24px;
+	height: 24px;
+}
+.yt-pause-icon {
+	background: no-repeat url(//s.ytimg.com/yts/imgbin/www-hitchhiker-2x-vfl2drU0Y.webp) -297px -8px;
+	background-size: 628px 264px;
+	width: 24px;
+	height: 24px;
+}
+.yt-next-icon {
+	background: no-repeat url(//s.ytimg.com/yts/imgbin/www-hitchhiker-2x-vfl2drU0Y.webp) -423px -107px;
+	background-size: 628px 264px;
+	width: 24px;
+	height: 24px;
+}
+.yt-prev-icon {
+	background: no-repeat url(//s.ytimg.com/yts/imgbin/www-hitchhiker-2x-vfl2drU0Y.webp) -540px -99px;
+	background-size: 628px 264px;
+	width: 24px;
+	height: 24px;
 }

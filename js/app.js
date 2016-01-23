@@ -13,6 +13,19 @@ $(function() {
 				video: video
 			});
 		},
+		find: function(id) {
+			chrome.runtime.sendMessage({
+				action: 'find',
+				id: id
+			});
+		},
+		moveTo: function(id, new_index) {
+			chrome.runtime.sendMessage({
+				action: 'moveTo',
+				id: id,
+				new_index: new_index
+			});
+		},
 		getNextVideo: function() {
 			chrome.runtime.sendMessage({
 				action: 'nextVideo'
@@ -80,8 +93,14 @@ $(function() {
 		var $queueBar = $(
 			'<div id="youqueue-bar">' +
 				'<div id="youqueue-actions">' +
-					'<button type="button" class="youqueue-button" title="Start/Stop Queue">' +
-						'<span class="yt-pl-icon yt-pl-icon-reg yt-sprite"></span>' +
+					'<button type="button" class="youqueue-button" id="youqueue-prev" title="Play Next">' +
+						'<span class="yt-prev-icon yt-sprite"></span>' +
+					'</button>' +
+					'<button type="button" class="youqueue-button" id="youqueue-play" title="Start/Stop Queue">' +
+						'<span class="yt-play-icon yt-sprite"></span>' +
+					'</button>' +
+					'<button type="button" class="youqueue-button" id="youqueue-next" title="Play Next">' +
+						'<span class="yt-next-icon yt-sprite"></span>' +
 					'</button>' +
 				'</div>' +
 				'<div id="youqueue-queue"></div>' +
@@ -93,19 +112,40 @@ $(function() {
 			Queue.addToDOMQueue(list[video]);
 		}
 
-		$('#youqueue-queue').dad({
-			target: '.youqueue-video',
-			draggable: 'img',
-			callback: function(e) {
-				// Queue position may have changed in the DOM, so check the positions of videos there
-				var id = $(e.context).data('id');
+		$('#youqueue-queue').on('mousedown', '.youqueue-video img', function(e) {
+			e.preventDefault();
+			$(this).parent().addClass('dragover');
+		});
+		$('#youqueue-queue').on('mousemove', '.youqueue-video img', function() {
+			if($(this).parent().hasClass('dragover') && !$(this).parent().hasClass('dragging')) {
+				$(this).parent().addClass('dragging');
+				var img = $(this).clone().addClass('dragger').appendTo('#youqueue-queue');
+			}
+		});
 
-				var index = Queue.find(id);
-				var new_index = $(e.context).index();
-
-				if(index != new_index) {
-					Queue.move(index, new_index);
+		$(document).mouseup(function(e) {
+			var img = $('#youqueue-queue .dragger');
+			var left = e.clientX - img.width();
+			$('#youqueue-queue .youqueue-video').each(function() {
+				if(left > $(this).offset().left - (img.width() / 2)) {
+					$('#youqueue-queue .dragging').insertAfter($(this));
+				} else {
+					$('#youqueue-queue .dragging').insertBefore($(this));
 				}
+			});
+
+			var id = $('#youqueue-queue .dragging').data('id');
+			var new_index = $('#youqueue-queue .dragging').index();
+			Queue.moveTo(id, new_index);
+
+			$('#youqueue-queue .youqueue-video').removeClass('dragover').removeClass('dragging');
+			$('#youqueue-queue .dragger').remove();
+		});
+		$(document).mousemove(function(e) {
+			if($('#youqueue-queue .dragger').length) {
+				var img = $('#youqueue-queue .dragger');
+				var left = e.clientX - (img.width() / 2) - $('#youqueue-queue').offset().left;
+				img.css('left', left);
 			}
 		});
 
