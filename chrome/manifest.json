@@ -1,0 +1,25 @@
+{
+  "manifest_version": 2,
+  "name": "YouQueue",
+  "version": "0.1",
+
+  "description": "Drag and Drop YouTube Play Queue",
+
+  "author": "Dan Bovey",
+  "background": {
+    "scripts": ["js/background.js"],
+    "persistent": true
+  },
+  "content_scripts": [ {
+    "css": [ "css/style.css" ],
+    "js": ["js/jquery.js", "js/jquery.dad.js", "js/content.js" ],
+    "matches": [ "http://*.youtube.com/*", "https://*.youtube.com/*"]
+  }],
+  "permissions": ["tabs"],
+  "short_name": "YouQueue",
+
+  "options_ui": {
+    "page": "options.html",
+    "chrome_style": true
+  }
+}
