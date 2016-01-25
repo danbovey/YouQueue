@@ -1,6 +1,9 @@
 var Queue = {
 	list: [],
 	playing: false,
+	options: {
+		autoplay: true
+	},
 	get: function(id) {
 		for(var video in Queue.list) {
 			if(Queue.list[video].id == id) {

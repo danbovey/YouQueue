@@ -9,12 +9,16 @@ $(function() {
 	if($('#browse-items-primary').length) {
 		type = 'subscriptions';
 		API.connect(type, function(response) {
-			queue.load(response.list);
+			if(response) {
+				queue.init(response);
+			}
 		});
 	} else if($('#player:not(.off-screen)').length) {
 		type = 'player';
 		API.connect(type, function(response) {
-			player.load();
+			if(response) {
+				player.load(response);
+			}
 		});
 	}
 });

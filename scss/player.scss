@@ -1,0 +1,17 @@
+#watch7-sidebar-contents {
+	min-height: initial !important;
+
+	&.queue-empty {
+		padding-bottom: 1px;
+	}
+}
+
+// Sidebar "Nothing Queued" Button
+.yt-card .youqueue-nothing-queued.yt-uix-button-expander {
+	height: 83px;
+	cursor: initial;
+
+	&:hover {
+		color: #767676;
+	}
+}

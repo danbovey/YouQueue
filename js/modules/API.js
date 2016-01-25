@@ -69,5 +69,20 @@ module.exports = {
 				callback(response);
 			});
 		}
+	},
+	options: {
+		set: function(name, value) {
+			chrome.runtime.sendMessage({
+				action: 'setOption',
+				name: name,
+				value: value
+			});
+		},
+		toggle: function(name) {
+			chrome.runtime.sendMessage({
+				action: 'toggleOption',
+				name: name
+			});
+		}
 	}
 };

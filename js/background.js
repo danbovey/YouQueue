@@ -1,25 +1,27 @@
-var Queue = require('./modules/Queue.js');
+window.Queue = require('./modules/Queue.js');
 
 var subscriptionTab; // TODO - Support for multiple tabs
 var playerTab;
 
 chrome.runtime.onMessage.addListener(function(data, sender, sendResponse) {
-	var tab = sender.tab;
-
-	if(typeof data.action == 'undefined' || typeof sendResponse != 'function') {
+	if(typeof sender.tab == 'undefined' || typeof data.action == 'undefined' || typeof sendResponse != 'function') {
 		return;
 	}
+
+	var tab = sender.tab;
 
 	if(data.action == 'connect') {
 		if(data.type == 'subscriptions') {
 			subscriptionTab = tab;
 			sendResponse({
-				list: Queue.list
+				list: Queue.list,
+				options: Queue.options
 			});
 		} else if(data.type == 'player') {
 			playerTab = tab;
 			sendResponse({
-				list: Queue.list
+				list: Queue.list,
+				options: Queue.options
 			});
 		}
 
@@ -69,7 +71,6 @@ chrome.runtime.onMessage.addListener(function(data, sender, sendResponse) {
 				}
 			case 'moveTo':
 				Queue.moveTo(data.id, data.new_index);
-				console.log(Queue.list);
 				break;
 		}
 	} else if(playerTab && tab.id == playerTab.id) {
@@ -79,6 +80,26 @@ chrome.runtime.onMessage.addListener(function(data, sender, sendResponse) {
 				sendResponse({
 					video: video
 				});
+
+				chrome.tabs.sendMessage(playerTab.id, {
+					action: 'updateQueue',
+					list: Queue.list,
+					options: Queue.options
+				});
+				break;
+			case 'setOption':
+				if(data.name && data.value) {
+					Queue.options[data.name] = data.value;
+
+					// Push new options
+				}
+				break;
+			case 'toggleOption':
+				if(data.name) {
+					Queue.options[data.name] = !Queue.options[data.name];
+
+					// Push new options
+				}
 				break;
 		}
 	}
@@ -87,20 +108,20 @@ chrome.runtime.onMessage.addListener(function(data, sender, sendResponse) {
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
 	// URL is provided only if it has changed
 	if(changeInfo.url) {
-		if(tabId == playerTab.id) {
+		if(playerTab && tabId == playerTab.id) {
 			playerTab = null;
 			Queue.playing = false;
-		} else if(tabId == subscriptionTab.id) {
+		} else if(subscriptionTab && tabId == subscriptionTab.id) {
 			subscriptionTab = null;
 		}
 	}
 });
 
 chrome.tabs.onRemoved.addListener(function(tabId) {
-	if(tabId == playerTab.id) {
+	if(playerTab && tabId == playerTab.id) {
 		playerTab = null;
 		Queue.playing = false;
-	} else if(tabId == subscriptionTab.id) {
+	} else if(subscriptionTab && tabId == subscriptionTab.id) {
 		subscriptionTab = null;
 	}
 });

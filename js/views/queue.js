@@ -1,10 +1,23 @@
 var API = require('./../modules/API.js');
 
 module.exports = {
-	load: function(list) {
+	init: function(data) {
 		var self = this;
 
-		this.showBar(list);
+		var $queueBar = $(
+			'<div id="youqueue-bar">' +
+				'<div id="youqueue-actions">' +
+					'<button type="button" class="youqueue-button" id="youqueue-play" title="Start/Stop Queue">' +
+						'<span class="yt-play-icon yt-sprite"></span>' +
+					'</button>' +
+					'<button type="button" class="youqueue-button" id="youqueue-next" title="Play Next">' +
+						'<span class="yt-next-icon yt-sprite"></span>' +
+					'</button>' +
+				'</div>' +
+				'<div id="youqueue-queue"></div>' +
+			'</div>'
+		);
+		$queueBar.appendTo('body');
 
 		$('#youqueue-queue').on('mousedown', '.youqueue-video img', function(e) {
 			e.preventDefault();
@@ -53,11 +66,22 @@ module.exports = {
 			// If it's on the queue add success, else take it off
 			$(this).addClass('addto-watch-queue-button-success');
 
+			var $userCard = $(this).parent().parent().find('.g-hovercard');
+			var link = $(this).parent().find('a').first().attr('href');
+
 			var video = {
 				id: $(this).data('video-ids'),
 				title: $(this).parent().parent().find('.yt-lockup-title a').attr('title'),
-				link: $(this).parent().find('a').first().attr('href'),
-				img: $(this).parent().find('.yt-thumb img').attr('src')
+				link: link,
+				code: link.replace('/watch?v=', ''),
+				img: $(this).parent().find('.yt-thumb img').attr('src'),
+				duration: $(this).parent().find('.video-time').text(),
+				views: $(this).parent().parent().find('.yt-lockup-meta-info li').first().text().replace(' views', ''),
+				user: {
+					name: $userCard.text(),
+					user: $userCard.attr('href'),
+					ytid: $userCard.data('ytid')
+				}
 			};
 
 			API.queue.toggle(video, function(response) {
@@ -93,22 +117,21 @@ module.exports = {
 				}
 			});
 		});
+
+		this.load(data);
+
+		chrome.runtime.onMessage.addListener(function(data, sender, sendResponse) {
+			console.log(data);
+			if(data.action == 'updateQueue') {
+				self.load(data.list);
+			}
+		});
+	},
+	load: function(data) {
+		$('#youqueue-queue').empty();
+		this.showBar(data.list);
 	},
 	showBar: function(list) {
-		var $queueBar = $(
-			'<div id="youqueue-bar">' +
-				'<div id="youqueue-actions">' +
-					'<button type="button" class="youqueue-button" id="youqueue-play" title="Start/Stop Queue">' +
-						'<span class="yt-play-icon yt-sprite"></span>' +
-					'</button>' +
-					'<button type="button" class="youqueue-button" id="youqueue-next" title="Play Next">' +
-						'<span class="yt-next-icon yt-sprite"></span>' +
-					'</button>' +
-				'</div>' +
-				'<div id="youqueue-queue"></div>' +
-			'</div>'
-		);
-		$queueBar.appendTo('body');
 		for(var video in list) {
 			this.addToBar(list[video]);
 		}
