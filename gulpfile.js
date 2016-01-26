@@ -49,7 +49,7 @@ gulp.task('js', function() {
 				console.log(e);
 			}))
 			.pipe(sourcemaps.write())
-			.pipe(gulp.dest('chrome'));
+			.pipe(gulp.dest('chrome/js'));
 		}
 	});
 
