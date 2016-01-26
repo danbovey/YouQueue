@@ -25,11 +25,17 @@ gulp.task('scss', function() {
 gulp.task('js', function() {
 	var files = [
 		'js/content.js',
-		'js/background.js'
+		'js/background.js',
+		'./node_modules/jquery/dist/jquery.min.js'
 	];
 
 	var tasks = files.map(function(entry) {
-		return browserify({
+		if(entry.indexOf('node_modules') > -1) {
+			console.log(entry);
+			return gulp.src(entry)
+				.pipe(gulp.dest('chrome/js'));
+		} else {
+			return browserify({
 				entries: [entry]
 			})
 			.bundle()
@@ -44,6 +50,7 @@ gulp.task('js', function() {
 			}))
 			.pipe(sourcemaps.write())
 			.pipe(gulp.dest('chrome'));
+		}
 	});
 
 	return es.merge.apply(null, tasks);
