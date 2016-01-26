@@ -10,6 +10,7 @@ var uglify = require('gulp-uglify');
 var source = require('vinyl-source-stream');
 var buffer = require('vinyl-buffer');
 var es = require('event-stream');
+var runSequence = require('run-sequence');
 
 gulp.task('scss', function() {
 	return gulp.src('scss/app.scss')
@@ -49,6 +50,8 @@ gulp.task('js', function() {
 });
 
 gulp.task('default', function() {
+	runSequence('scss', 'js');
+
 	gulp.watch('scss/**/*.scss', ['scss']);
 	gulp.watch('js/**/*.js', ['js']);
 });

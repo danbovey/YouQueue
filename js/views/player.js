@@ -2,23 +2,55 @@ var API = require('./../modules/API.js');
 
 module.exports = {
 	player: null,
+	playerType: null,
 	options: {},
 	load: function(data) {
 		var self = this;
 
+		console.log(data);
+
 		this.options = data.options;
 		this.player = this.getPlayer();
 		if(this.player) {
-			window.setInterval(function() {
-				if(self.player[0].currentTime == self.player[0].duration && self.options.autoplay) {
-					API.queue.getNextVideo(function(response) {
-						if(response.video && response.video.link) {
-							console.log(response.video.link);
-							window.location.href = response.video.link;
-						}
-					});
+			if(this.playerType == 'html') {
+				this.player.on('ended', function() {
+					if(self.options.autoplay) {
+						self.playNextVideo();
+					}
+				});
+
+				$ytNextButton = $('#player .ytp-next-button');
+				var $nextButton = $('<button type="button" class="ytp-next-button ytp-button" aria-disabled="false">');
+				$nextButton.html($ytNextButton.html());
+				$nextButton.click(function() {
+					self.playNextVideo();
+				});
+				var $tooltip = $('');
+
+				var nextVideo = data.list[data.index];
+				if(nextVideo) {
+					$tooltip = $('<div data-layer="4" style="left: 12px; display: none;" class="ytp-tooltip ytp-bottom ytp-text-detail ytp-preview ytp-has-duration"><div class="ytp-tooltip-bg" style="width: 96px; height: 54px; background: url(&quot;' + nextVideo.img + '&quot;) -12px -18px / 120px 90px rgb(0, 0, 0);"><div class="ytp-tooltip-duration">' + nextVideo.duration + '</div></div><div class="ytp-tooltip-text-wrapper"><div class="ytp-tooltip-image"></div><div class="ytp-tooltip-title">Next</div><span class="ytp-tooltip-text">' + nextVideo.title + '</span></div></div>');
+				} else {
+					$tooltip = $('<div data-layer="4" style="left: 12px; display: none;" class="ytp-tooltip ytp-bottom ytp-text-detail ytp-preview ytp-has-duration"><div class="ytp-tooltip-bg" style="width: 96px; height: 54px; background: url(&quot;' + 'https://i.stack.imgur.com/QO5Nr.jpg' + '&quot;) -12px -18px / 120px 90px rgb(0, 0, 0);"><div class="ytp-tooltip-duration">' + '0:00' + '</div></div><div class="ytp-tooltip-text-wrapper"><div class="ytp-tooltip-image"></div><div class="ytp-tooltip-title">Next</div><span class="ytp-tooltip-text">' + 'Nothing queued' + '</span></div></div>');
 				}
-			}, 250);
+				$tooltip.appendTo($('#player .html5-video-player'));
+
+				$nextButton.mouseover(function() {
+					$tooltip.css('display', 'block');
+				});
+				$nextButton.mouseleave(function() {
+					$tooltip.css('display', 'none');
+				});
+
+				$ytNextButton.remove();
+				$nextButton.insertAfter($('#player .ytp-play-button'));
+			} else {
+				mv.get().addEventListener('onStateChange', function(newState) {
+					if(newState == 0 && self.options.autoplay) {
+						self.playNextVideo();
+					}
+				});
+			}
 		}
 
 		$sidebar = $('#watch7-sidebar-modules');
@@ -39,9 +71,9 @@ module.exports = {
 		$sidebarFirst.empty();
 		$sidebarRelated.empty();
 
-		if(data.list.length > 0) {
-			var firstVideo = data.list[0];
-			$sidebarFirst.append(this.sidebarVideo(firstVideo));
+		var nextVideo = data.list[data.index];
+		if(nextVideo) {
+			$sidebarFirst.append(this.sidebarVideo(nextVideo));
 
 			if(data.list.length > 1) {
 				$(
@@ -51,7 +83,7 @@ module.exports = {
 				).insertBefore($sidebarRelated);
 			}
 
-			for(var i = 1; i < data.list.length; i++) {
+			for(var i = data.index + 1; i < data.list.length; i++) {
 				var video = data.list[i];
 
 				$sidebarRelated.append(this.sidebarVideo(video));
@@ -65,8 +97,16 @@ module.exports = {
 			$('#watch7-sidebar-contents').addClass('queue-empty');
 		}
 	},
+	playNextVideo: function() {
+		API.queue.getNextVideo(function(response) {
+			if(response.video && response.video.link) {
+				window.location.href = response.video.link;
+			}
+		});
+	},
 	getPlayer: function() {
 		if($('movie_player').length && $('movie_player').prop('tagName') === 'EMBED') {
+			this.playerType = 'flash';
 			return $('movie_player');
 		}
 
@@ -85,6 +125,9 @@ module.exports = {
 			html.playVideo = function() {
 				html.play();
 			}
+
+			this.playerType = 'html';
+
 			return html;
 		}
 

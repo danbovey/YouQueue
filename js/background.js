@@ -14,12 +14,14 @@ chrome.runtime.onMessage.addListener(function(data, sender, sendResponse) {
 		if(data.type == 'subscriptions') {
 			subscriptionTab = tab;
 			sendResponse({
+				index: Queue.index,
 				list: Queue.list,
 				options: Queue.options
 			});
 		} else if(data.type == 'player') {
 			playerTab = tab;
 			sendResponse({
+				index: Queue.index,
 				list: Queue.list,
 				options: Queue.options
 			});
@@ -37,7 +39,7 @@ chrome.runtime.onMessage.addListener(function(data, sender, sendResponse) {
 				break;
 			case 'togglePlay':
 				var type = Queue.togglePlay();
-				if(type == 'playing' && typeof playerTab == 'undefined' && Queue.list.length > 0) {
+				if(type == true && typeof playerTab == 'undefined' && Queue.list.length > 0) {
 					var firstVideo = Queue.getNextVideo();
 
 					chrome.tabs.create({
