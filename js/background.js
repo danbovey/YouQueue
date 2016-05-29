@@ -1,7 +1,7 @@
 window.Queue = require('./modules/Queue.js');
 
-var subscriptionTab; // TODO - Support for multiple tabs
-var playerTab;
+var subscriptionTabs = [];
+var playerTab = null;
 
 chrome.runtime.onMessage.addListener(function(data, sender, sendResponse) {
 	if(typeof sender.tab == 'undefined' || typeof data.action == 'undefined' || typeof sendResponse != 'function') {
@@ -12,17 +12,17 @@ chrome.runtime.onMessage.addListener(function(data, sender, sendResponse) {
 
 	if(data.action == 'connect') {
 		if(data.type == 'subscriptions') {
-			subscriptionTab = tab;
+			subscriptionTabs.push(tab.id);
 			sendResponse({
-				index: Queue.index,
-				list: Queue.list,
+				index: Queue.currentIndex,
+				list: Queue.get(),
 				options: Queue.options
 			});
 		} else if(data.type == 'player') {
-			playerTab = tab;
+			playerTab = tab.id;
 			sendResponse({
-				index: Queue.index,
-				list: Queue.list,
+				index: Queue.currentIndex,
+				list: Queue.get(),
 				options: Queue.options
 			});
 		}
@@ -30,65 +30,74 @@ chrome.runtime.onMessage.addListener(function(data, sender, sendResponse) {
 		return;
 	}
 
-	if(subscriptionTab && tab.id == subscriptionTab.id) {
+	if(subscriptionTabs.length > 0 && subscriptionTabs.indexOf(tab.id) > -1) {
 		switch(data.action) {
 			case 'load':
-				sendResponse({
-					list: Queue.list
+				return sendResponse({
+					list: Queue.get()
 				});
-				break;
-			case 'togglePlay':
-				var type = Queue.togglePlay();
-				if(type == true && typeof playerTab == 'undefined' && Queue.list.length > 0) {
-					var firstVideo = Queue.getNextVideo();
+			case 'play':
+				Queue.isPlaying == true;
+				if(playerTab == null && Queue.get().length > 0) {
+					var firstVideo = Queue.nextVideo();
 
 					chrome.tabs.create({
 						url: 'https://youtube.com' + firstVideo.link,
 						active: true,
-						openerTabId: subscriptionTab.id
-					}, function(tab) {
-						playerTab = tab;
+						openerTabId: tab.id
+					}, function(newTab) {
+						playerTab = newTab.id;
+					});
+
+					return sendResponse({
+						newTab: true
 					});
 				}
-				sendResponse({
-					type: type
+
+				return sendResponse({
+					newTab: false
 				});
-				break;
 			case 'toggle':
 				var video = data.video
-				var type = Queue.toggle(video);
-				sendResponse({
-					type: type,
-					video: video
+				var inQueue = Queue.toggle(video);
+				return sendResponse({
+					inQueue: inQueue
 				});
-				break;
 			case 'remove':
 				var id = data.id;
 				var video = Queue.get(id);
 				if(video) {
 					Queue.remove(id);
-					sendResponse({
+					return sendResponse({
 						video: video
 					});
 				}
-			case 'moveTo':
-				Queue.moveTo(data.id, data.new_index);
 				break;
+			case 'moveTo':
+				return Queue.moveTo(data.id, data.new_index);
 		}
-	} else if(playerTab && tab.id == playerTab.id) {
+	} else if(playerTab && tab.id == playerTab) {
 		switch(data.action) {
 			case 'nextVideo':
-				var video = Queue.getNextVideo();
-				sendResponse({
-					video: video
+				var video = Queue.nextVideo();
+
+				chrome.tabs.sendMessage(playerTab, {
+					action: 'updateQueue',
+					list: Queue.get(),
+					index: Queue.currentIndex
 				});
 
-				chrome.tabs.sendMessage(playerTab.id, {
-					action: 'updateQueue',
-					list: Queue.list,
-					options: Queue.options
+				for(var i in subscriptionTabs) {
+					chrome.tabs.sendMessage(subscriptionTabs[i], {
+						action: 'updateQueue',
+						list: Queue.get(),
+						index: Queue.currentIndex
+					});
+				}
+
+				return sendResponse({
+					video: video
 				});
-				break;
 			case 'setOption':
 				if(data.name && data.value) {
 					Queue.options[data.name] = data.value;
@@ -110,20 +119,35 @@ chrome.runtime.onMessage.addListener(function(data, sender, sendResponse) {
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
 	// URL is provided only if it has changed
 	if(changeInfo.url) {
-		if(playerTab && tabId == playerTab.id) {
+		if(tabId == playerTab) {
 			playerTab = null;
 			Queue.playing = false;
-		} else if(subscriptionTab && tabId == subscriptionTab.id) {
-			subscriptionTab = null;
+		} else if(subscriptionTabs.length > 0) {
+			var index = subscriptionTabs.indexOf(tab.id);
+
+			if(index > -1) {
+				subscriptionTabs.splice(index, 1);
+			}
 		}
 	}
 });
 
 chrome.tabs.onRemoved.addListener(function(tabId) {
-	if(playerTab && tabId == playerTab.id) {
+	if(tabId == playerTab) {
+		Queue.isPlaying = false;
 		playerTab = null;
-		Queue.playing = false;
-	} else if(subscriptionTab && tabId == subscriptionTab.id) {
-		subscriptionTab = null;
+
+		for(var i in subscriptionTabs) {
+			chrome.tabs.sendMessage(subscriptionTabs[i], {
+				action: 'togglePlay',
+				playing: Queue.isPlaying
+			});
+		}
+	} else if(subscriptionTabs.length > 0) {
+		var index = subscriptionTabs.indexOf(tabId);
+
+		if(index > -1) {
+			subscriptionTabs.splice(index, 1);
+		}
 	}
 });

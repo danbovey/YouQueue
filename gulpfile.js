@@ -26,12 +26,12 @@ gulp.task('js', function() {
 	var files = [
 		'js/content.js',
 		'js/background.js',
+		'js/player-inject.js',
 		'./node_modules/jquery/dist/jquery.min.js'
 	];
 
 	var tasks = files.map(function(entry) {
 		if(entry.indexOf('node_modules') > -1) {
-			console.log(entry);
 			return gulp.src(entry)
 				.pipe(gulp.dest('chrome/js'));
 		} else {
@@ -49,7 +49,8 @@ gulp.task('js', function() {
 				console.log(e);
 			}))
 			.pipe(sourcemaps.write())
-			.pipe(gulp.dest('chrome'));
+			.pipe(gulp.dest('chrome'))
+			.pipe(notify("Compiled JS"));;
 		}
 	});
 

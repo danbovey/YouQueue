@@ -17,7 +17,7 @@ $(function() {
 		type = 'player';
 		API.connect(type, function(response) {
 			if(response) {
-				player.load(response);
+				player.init(response);
 			}
 		});
 	}

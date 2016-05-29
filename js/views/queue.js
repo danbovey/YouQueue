@@ -1,3 +1,6 @@
+var $ = require('jquery');
+require('html5sortable');
+
 var API = require('./../modules/API.js');
 
 module.exports = {
@@ -19,41 +22,13 @@ module.exports = {
 		);
 		$queueBar.appendTo('body');
 
-		$('#youqueue-queue').on('mousedown', '.youqueue-video img', function(e) {
-			e.preventDefault();
-			$(this).parent().addClass('dragover');
-		});
-		$('#youqueue-queue').on('mousemove', '.youqueue-video img', function() {
-			if($(this).parent().hasClass('dragover') && !$(this).parent().hasClass('dragging')) {
-				$(this).parent().addClass('dragging');
-				var img = $(this).clone().addClass('dragger').appendTo('#youqueue-queue');
-			}
+		var $sortable = $('#youqueue-queue').sortable({
+			placeholder: '<div class="video-placeholder"></div>',
+			forcePlaceholderSize: true
 		});
 
-		$(document).mouseup(function(e) {
-			var img = $('#youqueue-queue .dragger');
-			var left = e.clientX - img.width();
-			$('#youqueue-queue .youqueue-video').each(function() {
-				if(left > $(this).offset().left - (img.width() / 2)) {
-					$('#youqueue-queue .dragging').insertAfter($(this));
-				} else {
-					$('#youqueue-queue .dragging').insertBefore($(this));
-				}
-			});
-
-			var id = $('#youqueue-queue .dragging').data('id');
-			var new_index = $('#youqueue-queue .dragging').index();
-			API.queue.moveTo(id, new_index);
-
-			$('#youqueue-queue .youqueue-video').removeClass('dragover').removeClass('dragging');
-			$('#youqueue-queue .dragger').remove();
-		});
-		$(document).mousemove(function(e) {
-			if($('#youqueue-queue .dragger').length) {
-				var img = $('#youqueue-queue .dragger');
-				var left = e.clientX - (img.width() / 2) - $('#youqueue-queue').offset().left;
-				img.css('left', left);
-			}
+		$sortable.bind('sortupdate', function(e, ui) {
+			API.queue.moveTo(ui.item[0].dataset.id, ui.index);
 		});
 
 		var $addToQueueButton = $('.addto-queue-button');
@@ -85,10 +60,10 @@ module.exports = {
 			};
 
 			API.queue.toggle(video, function(response) {
-				if(response.type == 'added') {
-					self.addToBar(response.video);
-				} else if(response.type = 'removed') {
-					self.removeFromBar(response.video);
+				if(response.inQueue == true) {
+					self.addToBar(video);
+				} else if(response.inQueue == false) {
+					self.removeFromBar(video);
 				}
 			});
 
@@ -97,12 +72,10 @@ module.exports = {
 
 		$('#youqueue-play').click(function() {
 			var $icon = $(this).find('.yt-sprite');
-			API.queue.togglePlay(function(response) {
-				if(response.type == 'playing') {
-					$icon.removeClass('yt-play-icon').addClass('yt-pause-icon');
-				} else if(response.type == 'paused') {
-					$icon.removeClass('yt-pause-icon').addClass('yt-play-icon');
-				}
+
+			// if queue is playing use API.queue.pause and $icon.removeClass('yt-pause-icon').addClass('yt-play-icon');
+			API.queue.play(function(response) {
+				$icon.removeClass('yt-play-icon').addClass('yt-pause-icon');
 			});
 		});
 
@@ -121,9 +94,20 @@ module.exports = {
 		this.load(data);
 
 		chrome.runtime.onMessage.addListener(function(data, sender, sendResponse) {
-			console.log(data);
 			if(data.action == 'updateQueue') {
 				self.load(data.list);
+			}
+		});
+
+		chrome.runtime.onMessage.addListener(function(data, sender, sendResponse) {
+			var $icon = $('#youqueue-play .yt-sprite');
+
+			if(data.action == 'togglePlay') {
+				if(data.playing == true) {
+					$icon.removeClass('yt-play-icon').addClass('yt-pause-icon');
+				} else {
+					$icon.removeClass('yt-pause-icon').addClass('yt-play-icon');
+				}
 			}
 		});
 	},
@@ -152,9 +136,12 @@ module.exports = {
 				'</a>'
 			);
 		}
+
+		$('#youqueue-queue').sortable();
 	},
 	removeFromBar: function(video) {
 		$('#youqueue-queue').find('[data-id="' + video.id + '"]').remove();
+		$('#youqueue-queue').sortable();
 	},
 	updateThumbActions: function(video) { // TODO - Make this work!
 		console.log('#browse-items-primary data-context-item-id="' + video.id + '"]');

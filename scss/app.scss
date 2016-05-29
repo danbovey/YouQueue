@@ -56,23 +56,6 @@
 					display: block;
 				}
 			}
-			&.dragging {
-				&:before {
-					position: absolute;
-					width: calc(100% - 6px);
-					height: calc(100% - 6px);
-					border: 3px dashed rgba(255, 255, 255, 0.2);
-					content: '';
-				}
-				&:hover, &:focus {
-					.youqueue-remove {
-						display: none;
-					}
-				}
-				img {
-					display: none;
-				}
-			}
 
 			.youqueue-remove {
 				display: none;
@@ -94,12 +77,11 @@
 			}
 		}
 
-		> img.dragger {
-			position: absolute;
-			top: 13px;
-			left: 0;
+		.video-placeholder {
 			width: 62px;
-			height: 35px;
+			height: 29px;
+			margin-right: 10px;
+			border: 3px dashed rgba(255, 255, 255, 0.3);
 		}
 	}
 
@@ -120,9 +102,9 @@
 				height: 50px;
 			}
 
-			> img.dragger {
+			.video-placeholder {
 				width: 89px;
-				height: 50px;
+				height: 44px;
 			}
 		}
 	}

@@ -8,9 +8,9 @@ module.exports = {
 		});
 	},
 	queue: {
-		togglePlay: function(callback) {
+		play: function(callback) {
 			chrome.runtime.sendMessage({
-				action: 'togglePlay'
+				action: 'play'
 			}, function(response) {
 				callback(response);
 			});
@@ -46,6 +46,7 @@ module.exports = {
 			});
 		},
 		add: function(video) {
+			console.log(video);
 			chrome.runtime.sendMessage({
 				action: 'add',
 				video: video
@@ -57,7 +58,7 @@ module.exports = {
 			chrome.runtime.sendMessage({
 				action: 'playNext',
 				video: video
-			}, function(response) { 
+			}, function(response) {
 				callback(response);
 			});
 		},
